@@ -49,3 +49,23 @@ For each system call introduced in this phase, here is how the API, the operatin
 
 * **Address Already in Use Error:** Attempting to execute a secondary concurrent instance of the server binary against port `8080` throws a `bind() failed: Address already in use` error. This demonstrates the OS kernel's strict restriction against mapping multiple distinct listener endpoints to the exact same transport address profile simultaneously.
 * **Memory and Resource Lifecycle:** Confirmed that invoking `close()` systematically against both active file descriptors cleanly removes their table indices from the process descriptor register, yielding safe program termination.
+
+----------------------------------phase 2--------------------------
+##phase 2 :Reading raw data and network streams
+Here is the exact network text stream captured from the `curl` client:
+```text
+GET / HTTP/1.1
+Host: 127.0.0.1:8080
+User-Agent: curl/8.5.0
+Accept: */*
+
+-----------------------
+system call choice read() between recv()
+    selected recv() with a trailling parameter of 0.
+    while read() works because sockets are tracked as standard file descriptors  in Linux.
+    ---
+    recv() is network explicit.
+    it signals a dedicated  socket connection state context  and provides access to socket specific behaviour modifiers.
+Edge case analysis
+    setting buffer[1024] limit to 1024 bytes provide a safe memory constraint frame.
+    if it is more than 1024 then it would read 1023 bytes and processes it as a complete string.

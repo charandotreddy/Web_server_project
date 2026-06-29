@@ -3,12 +3,14 @@
 #include <string.h>//for memset90
 #include <unistd.h>//for close() system call
 #include <arpa/inet.h>//for socteradd_in & socket API's
+#include <sys/socket.h>
 
 #define PORT 8080
 #define BACKLOG 5//mex length of our pending connection queue.
 
 int main(void)
 {
+    printf("------------------------------------------------------------------\n");
     int server_fd,client_fd;//holds our listening socket interger.
     struct sockaddr_in server_addr,client_addr;//holds the IP & port configuration.
     socklen_t client_addr_len = sizeof(client_addr);
@@ -88,10 +90,43 @@ int main(void)
     printf("client connection from: %s:%d\n",client_ip,ntohs(client_addr.sin_port));
     printf("----------------\n\n");
 
+    printf("------------------------------------------------------------------\n");
+    printf("------------------------------------------------------------------\n");
+    
+    /*
+     * ----------------------------------------------------------------------
+     *  phase:2 reading raw data from client
+     *  -----------------------------------------------------------------------
+     */
+    char buffer[1024];      //1kB network buffer stack frame.
+    memset(buffer,0,sizeof(buffer));
+
+    /*reading incomming stream data using socket  specific recv()*/
+    ssize_t bytes_read = recv(client_fd,buffer,sizeof(buffer)-1,0);
+
+    if(bytes_read > 0)
+    {
+        /*terminating right at the end of the data received*/
+        buffer[bytes_read] = '\0';
+        printf("------------------Received Raw Request (%ld bytes)----------\n",bytes_read);
+        printf("%s\n",buffer);
+        printf("------------------------------------------------\n");
+    }
+
+    else if(bytes_read == 0)
+    {
+        printf("[INFO]CLIENT DISCONNECTED CLEANLY WITHOUT SENDING DATA\n");
+    }
+    else
+    {
+        perror("recv() read failure errror encountered\n");
+    }
+
     close(client_fd);
     close(server_fd);
 
     printf("[OK] Both file descriptors closed. server shutting down cleanly\n");
+
             
     return 0;
 }
