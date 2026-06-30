@@ -69,3 +69,52 @@ system call choice read() between recv()
 Edge case analysis
     setting buffer[1024] limit to 1024 bytes provide a safe memory constraint frame.
     if it is more than 1024 then it would read 1023 bytes and processes it as a complete string.
+
+
+    ----------------------------------------------------
+Phase 3: Reading the Request & Sending a Real Web Page
+    ----------------------------------------------------
+
+1. What does an HTTP Response look like?
+When a web browser asks for a page, your server must reply with a highly structured block of text. It is always broken down into 4 distinct parts:
+
+The Status Line: Tells the browser that everything worked fine (HTTP/1.1 200 OK).
+
+The Headers: Metadata lines that describe the content. We use Content-Type: text/html to tell the browser it is receiving a web page, and Content-Length to say exactly how big the page is.
+
+The Blank Line (\r\n): A mandatory empty line that acts as a wall. It tells the browser, "The metadata is done! The actual visual website starts right after this."
+
+The Body: The actual HTML code (<html><body>...</body></html>) that gets drawn on the screen.
+
+------------------------------------------------------------------
+
+2. Why we chose sscanf for parsing
+We used sscanf(buffer, "%s %s %s", method, path, version) because it is safe and incredibly clean. It looks at the very first line of the incoming data and extracts the words separated by spaces. It does this without destroying or modifying our original data buffer.
+-----
+******************************************************8
+-----
+
+Our Experimental Observations
+1. The /foo Path Test
+What we did: We opened a browser and typed [http://127.0.0.1:8080/foo](http://127.0.0.1:8080/foo).
+
+What happened: The browser still displayed the big, bold HELLO page, but our terminal successfully printed out Path: /foo.
+
+What this proves: This proves our server can read custom paths perfectly without crashing! It still shows the same page because our response code is currently hardcoded to send back the same HTML string no matter what.
+
+----------------
+
+2. Fixing the Header Bug
+What we did: We fixed our headers to use a standard hyphen (Content-Type instead of content_type) and removed the extra space before the colon.
+
+What happened: Automated tools like curl stopped complaining. Instead of shutting down the connection with an error or warning, curl cleanly reported: Connection left intact.
+
+What this proves: Writing code that perfectly follows global standards makes sure that every single web browser can talk to your server without unexpected glitches.
+
+----------------
+
+3. The Content-Length Experiment
+What happens if you remove it? If you temporarily delete Content-Length, the browser's loading spinner will spin endlessly, and curl will hang in the terminal without exiting.
+
+Why does it break? Because modern web connections stay open to send multiple files, the client has no idea when your server is done talking. Without a Content-Length telling it exactly how many bytes to look for, it will sit there waiting forever.
+

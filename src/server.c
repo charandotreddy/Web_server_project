@@ -108,9 +108,56 @@ int main(void)
     {
         /*terminating right at the end of the data received*/
         buffer[bytes_read] = '\0';
-        printf("------------------Received Raw Request (%ld bytes)----------\n",bytes_read);
-        printf("%s\n",buffer);
-        printf("------------------------------------------------\n");
+
+        /*----------------------------------------------------------
+         * Phase-3: Pharsing the HTTP request line.
+         *-------------------------------------------------------------
+         */
+        char method[16];
+        char path[256];
+        char version[16];
+
+        /*scanf reads tokens separated by whitespace from the first line of the buffer.*/
+        int items_parsed = sscanf(buffer,"%s %s %s",method,path,version);
+        if(items_parsed == 3)
+        {
+            printf("\n-----------------------parsed HTTP Request Details---------------------\n");
+            printf("Method      :%s\n",method);
+            printf("Path        :%s\n",path);
+            printf("version     :%s\n",version);
+            printf("---------------------------------------\n\n");
+        }
+        else
+        {
+            printf("[warning] Failed to fully parse the HTTP request line\n");
+        }
+
+        /*
+         * phase-3: Building and sending the Hardcoded HTTP response our visual HTML payload string
+         */
+        const char *html_body = "<html><body><h1>HELLO</h1></body></html>";
+        int body_length = strlen(html_body);
+
+        /*Building the rew network text frame using strict HTTP \r\n line endings.*/
+
+        char response[2048];
+        snprintf(response, sizeof(response),"HTTP/1.1 200 OK\r\n"
+                "content-type: text/html\r\n"
+                "content-length: %d\r\n"
+                "\r\n"/*the critical blank line dividing headers from the body*/
+                "%s",body_length,html_body);
+
+        /*Transmitting the response package down the client stram pipe (clinet_fd)*/
+
+        ssize_t bytes_sent = send(client_fd,response,strlen(response),0);
+        if(bytes_sent == -1)
+        {
+            perror("send() response transmission failed");
+        }
+        else
+        {
+            printf("[SUCCESS] sent %ld response bytes back to client.\n",bytes_sent);
+        }
     }
 
     else if(bytes_read == 0)
