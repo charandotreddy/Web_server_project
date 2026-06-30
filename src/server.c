@@ -13,7 +13,6 @@ int main(void)
     printf("------------------------------------------------------------------\n");
     int server_fd,client_fd;//holds our listening socket interger.
     struct sockaddr_in server_addr,client_addr;//holds the IP & port configuration.
-    socklen_t client_addr_len = sizeof(client_addr);
     int opt = 1;//Flag used to enable socket reuse.
                 //
     printf("starting phase 1 Network Server...\n");
@@ -72,104 +71,174 @@ int main(void)
     //-–----–-
     //the execution will pause right here until a client dails in.
     
-    client_fd = accept(server_fd,(struct sockaddr*)&client_addr,&client_addr_len);
-    if(client_fd == -1)
-    {
-        perror("accept() failed");
-        close(server_fd);
-        exit(EXIT_FAILURE);
-    }
-
-    //converting the client binary IP layout inot standard readable text.
-    char client_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET,&client_addr.sin_addr,client_ip,INET_ADDRSTRLEN);
-
-    printf("\n---------connection established--------\n");
-    printf("server listening FD(main desk) %d\n",server_fd);
-    printf("client dedicated FD(private line) %d\n",client_fd);
-    printf("client connection from: %s:%d\n",client_ip,ntohs(client_addr.sin_port));
-    printf("----------------\n\n");
-
-    printf("------------------------------------------------------------------\n");
-    printf("------------------------------------------------------------------\n");
-    
     /*
-     * ----------------------------------------------------------------------
-     *  phase:2 reading raw data from client
-     *  -----------------------------------------------------------------------
+     * -----------------------------------------------------------
+     *  THE TIME LOOP: THIS LOOP KEEPS RUNNIG FOREVER
+     *----------------------------------------------------------
      */
-    char buffer[1024];      //1kB network buffer stack frame.
-    memset(buffer,0,sizeof(buffer));
-
-    /*reading incomming stream data using socket  specific recv()*/
-    ssize_t bytes_read = recv(client_fd,buffer,sizeof(buffer)-1,0);
-
-    if(bytes_read > 0)
+    while(1)
     {
-        /*terminating right at the end of the data received*/
-        buffer[bytes_read] = '\0';
-
-        /*----------------------------------------------------------
-         * Phase-3: Pharsing the HTTP request line.
-         *-------------------------------------------------------------
-         */
-        char method[16];
-        char path[256];
-        char version[16];
-
-        /*scanf reads tokens separated by whitespace from the first line of the buffer.*/
-        int items_parsed = sscanf(buffer,"%s %s %s",method,path,version);
-        if(items_parsed == 3)
+        socklen_t client_addr_len = sizeof(client_addr);
+    
+        client_fd = accept(server_fd,(struct sockaddr*)&client_addr,&client_addr_len);
+        if(client_fd == -1)
         {
-            printf("\n-----------------------parsed HTTP Request Details---------------------\n");
-            printf("Method      :%s\n",method);
-            printf("Path        :%s\n",path);
-            printf("version     :%s\n",version);
-            printf("---------------------------------------\n\n");
-        }
-        else
-        {
-            printf("[warning] Failed to fully parse the HTTP request line\n");
+            perror("accept() failed");
+            close(server_fd);
+            exit(EXIT_FAILURE);
         }
 
+        //converting the client binary IP layout inot standard readable text.
+        char client_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET,&client_addr.sin_addr,client_ip,INET_ADDRSTRLEN);
+    
+        printf("\n---------connection established--------\n");
+        printf("server listening FD(main desk) %d\n",server_fd);
+        printf("client dedicated FD(private line) %d\n",client_fd);
+        printf("client connection from: %s:%d\n",client_ip,ntohs(client_addr.sin_port));
+        printf("----------------\n\n");
+
+        printf("------------------------------------------------------------------\n");
+        printf("------------------------------------------------------------------\n");
+    
         /*
-         * phase-3: Building and sending the Hardcoded HTTP response our visual HTML payload string
-         */
-        const char *html_body = "<html><body><h1>HELLO</h1></body></html>";
-        int body_length = strlen(html_body);
+        * ----------------------------------------------------------------------
+        *  phase:2 reading raw data from client
+        *  -----------------------------------------------------------------------
+       */
+        char buffer[1024];      //1kB network buffer stack frame.
+        memset(buffer,0,sizeof(buffer));
 
-        /*Building the rew network text frame using strict HTTP \r\n line endings.*/
+        /*reading incomming stream data using socket  specific recv()*/
+        ssize_t bytes_read = recv(client_fd,buffer,sizeof(buffer)-1,0);
 
-        char response[2048];
-        snprintf(response, sizeof(response),"HTTP/1.1 200 OK\r\n"
-                "content-type: text/html\r\n"
-                "content-length: %d\r\n"
-                "\r\n"/*the critical blank line dividing headers from the body*/
-                "%s",body_length,html_body);
-
-        /*Transmitting the response package down the client stram pipe (clinet_fd)*/
-
-        ssize_t bytes_sent = send(client_fd,response,strlen(response),0);
-        if(bytes_sent == -1)
+        if(bytes_read > 0)
         {
-            perror("send() response transmission failed");
+            /*terminating right at the end of the data received*/
+            buffer[bytes_read] = '\0';
+
+            /*----------------------------------------------------------
+             * Phase-3: Pharsing the HTTP request line.
+             *-------------------------------------------------------------
+             */
+            char method[16];
+            char path[256];
+            char version[16];
+
+            /*scanf reads tokens separated by whitespace from the first line of the buffer.*/
+            int items_parsed = sscanf(buffer,"%s %s %s",method,path,version);
+        
+            if(items_parsed == 3)
+            {
+                printf("\n-----------------------parsed HTTP Request Details---------------------\n");
+                printf("Method      :%s\n",method);
+                printf("Path        :%s\n",path);
+                printf("version     :%s\n",version);
+                printf("---------------------------------------\n\n");
+            }
+            else
+            {
+                printf("[warning] Failed to fully parse the HTTP request line\n");
+                close(client_fd);
+
+            }
+
+            /*
+             *Phase-4: Mapping HTTP paths to read Disk Files.
+             */
+            char file_path[512];
+
+            /*Root paht mapping rules*/
+            if(strcmp(path,"/") == 0)
+            {
+                snprintf(file_path,sizeof(file_path),"public/index.html");
+            }
+            else if(strcmp(path,"/about") == 0)
+            {
+                snprintf(file_path,sizeof(file_path),"public/about.html");
+            }
+            else
+            {
+                /*safely chaining relative paths to the public directory*/
+                snprintf(file_path,sizeof(file_path),"public%s",path);
+            }
+
+            /*Attempting to open the requested resource*/
+            FILE *file = fopen(file_path,"r");
+
+            if(file != NULL)
+            {
+                /*---------------
+                 * CASE A: File Found (200 OK execution track)
+                 * -------------
+                 *  calculate total byte footprint via file seekers
+                 */
+    
+                fseek(file,0,SEEK_END);
+                long file_size = ftell(file);
+                fseek(file,0,SEEK_SET);/*resetting file pointer back to the beginning*/
+
+                /*Allocating a memory buffer to hold the raw content stream*/
+                char *file_buffer = malloc(file_size+1);
+                if(file_buffer == NULL)
+                {
+                    perror("memory allocation failure for file reading\n");
+                    fclose(file);
+                    close(client_fd);             
+                }
+
+                /*Read the data sterams from disk into our memeory footprint*/
+                ssize_t bytes_read_from_file = fread(file_buffer,1,file_size,file);
+                file_buffer[bytes_read_from_file] ='\0';
+                fclose(file);
+
+                /*construct HTTP standard response header*/
+                char response_header[512];
+                snprintf(response_header,sizeof(response_header),
+                        "HTTP/1.1 200 OK \r\n"
+                        "Content-Type: text/html\r\n"
+                        "Content-Length: %ld\r\n"
+                        "\r\n",
+                        file_size);
+
+                /*Transmitting header frame*/
+                send(client_fd,response_header,strlen(response_header),0);
+
+                /*Transmitting content body frame*/
+                send(client_fd,file_buffer,file_size,0);
+
+                printf("[SUCCESS] served %s (%ld bytes) back to client \n",file_path,file_size);
+                free(file_buffer);
+            }
+
+            else
+            {
+                /*
+                 * CASE B: File not found(404 ERROR Execution Track)
+                */
+                printf("[404 Error] Requested file path not found:%s\n",file_path);
+                
+                const char *not_found_body = "<html><body><h1>404 NOT FOUND</h1><p>The requested page does not exist in the server</p></body></html>";
+
+                int body_length = strlen(not_found_body);
+
+                char response[1024];
+                snprintf(response,sizeof(response),
+                        "HTTP/1.1 404 NOT FOUND\r\n"
+                        "Content-Type: text/html\r\n"
+                        "Content-Length: %d\r\n"
+                        "\r\n"
+                        "%s",body_length,not_found_body);
+
+                send(client_fd,response,strlen(response),0);
+            }
         }
-        else
-        {
-            printf("[SUCCESS] sent %ld response bytes back to client.\n",bytes_sent);
-        }
+        /*closing the client communication */
+        close(client_fd);
+        printf("[OK] connection processed cleanly.Waiting for the next connection.......\n");
+        printf("------------------------------------------------\n");
     }
 
-    else if(bytes_read == 0)
-    {
-        printf("[INFO]CLIENT DISCONNECTED CLEANLY WITHOUT SENDING DATA\n");
-    }
-    else
-    {
-        perror("recv() read failure errror encountered\n");
-    }
-
-    close(client_fd);
     close(server_fd);
 
     printf("[OK] Both file descriptors closed. server shutting down cleanly\n");
