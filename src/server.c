@@ -173,6 +173,7 @@ int main(void)
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/html\r\n"
                         "Content-Length: %d\r\n"
+                        "Connection:close\r\n"
                         "\r\n"
                         "%s",
                         body_length,shutdown_body);
@@ -225,6 +226,7 @@ int main(void)
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/html\r\n"
                         "Content-Length: %ld\r\n"
+                        "Connection:close\r\n"
                         "\r\n",
                         file_size);
 
@@ -251,9 +253,10 @@ int main(void)
 
                 char response[1024];
                 snprintf(response,sizeof(response),
-                        "HTTP/1.1 404 not found\r\n"
+                        "HTTP/1.1 404 Not Found\r\n"
                         "Content-Type: text/html\r\n"
                         "Content-Length: %d\r\n"
+                        "Connection:close\r\n"
                         "\r\n"
                         "%s",body_length,not_found_body);
 
