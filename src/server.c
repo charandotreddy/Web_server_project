@@ -15,7 +15,7 @@ int main(void)
     struct sockaddr_in server_addr,client_addr;//holds the IP & port configuration.
     int opt = 1;//Flag used to enable socket reuse.
                 //
-    printf("starting phase 1 Network Server...\n");
+    printf("Starting Network Server...\n");
     /*
      *Address Family - AF_INET (this is IP version 4).
      *Type - SOCK_STREAM (this means connection oriented TCP protocol) 
@@ -67,6 +67,27 @@ int main(void)
 
     printf("[OK] listening on port: %d.... waiting for a client to connect\n",PORT);
 
+    // ------------------------------------------------------------------
+    // STRUCTURAL STARTUP DASHBOARD PANEL (Beautification)
+    // ------------------------------------------------------------------
+    printf("\n");
+    printf("╔══════════════════════════════════════════════════════════╗\n");
+    printf("║                C WEB SERVER — PHASE 5                    ║\n");
+    printf("╠══════════════════════════════════════════════════════════╣\n");
+    printf("║  STATUS   : -> RUNNING                                   ║\n");
+    printf("║  PORT     : %-4d                                         ║\n", PORT);
+    printf("║  LOCAL    : http://127.0.0.1:%-4d                        ║\n", PORT);
+    printf("╠══════════════════════════════════════════════════════════╣\n");
+    printf("║  (|) OPEN IN BROWSER : http://127.0.0.1:%-4d             ║\n", PORT);
+    printf("║  </> TERMINAL TEST   : curl -v http://127.0.0.1:%-4d     ║\n", PORT);
+    printf("╠══════════════════════════════════════════════════════════╣\n");
+    printf("║  AVAILABLE ROUTES:                                       ║\n");
+    printf("║    [] GET /           → serves public/index.html         ║\n");
+    printf("║    [] GET /about      → serves public/about.html         ║\n");
+    printf("║    () GET /shutdown   → graceful server termination      ║\n");
+    printf("╠══════════════════════════════════════════════════════════╣\n");
+    printf("║   [$] Press Ctrl+C to stop the server manually           ║\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     //accepting one client connection(blocking).
     //-–----–-
     //the execution will pause right here until a client dails in.
@@ -97,10 +118,7 @@ int main(void)
         printf("server listening FD(main desk) %d\n",server_fd);
         printf("client dedicated FD(private line) %d\n",client_fd);
         printf("client connection from: %s:%d\n",client_ip,ntohs(client_addr.sin_port));
-        printf("----------------\n\n");
 
-        printf("------------------------------------------------------------------\n");
-        printf("------------------------------------------------------------------\n");
     
         /*
         * ----------------------------------------------------------------------
@@ -131,11 +149,11 @@ int main(void)
         
             if(items_parsed == 3)
             {
-                printf("\n-----------------------parsed HTTP Request Details---------------------\n");
+                printf("\nParsed HTTP Request Details\n");
                 printf("Method      :%s\n",method);
                 printf("Path        :%s\n",path);
                 printf("version     :%s\n",version);
-                printf("---------------------------------------\n\n");
+                printf("\n\n");
             }
             else
             {
@@ -267,7 +285,7 @@ int main(void)
         close(client_fd);
 
         printf("[OK] connection processed cleanly.Waiting for the next connection.......\n");
-        printf("------------------------------------------------\n");
+        printf("\n");
     }
 
     close(server_fd);
