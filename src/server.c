@@ -76,7 +76,8 @@ int main(void)
      *  THE TIME LOOP: THIS LOOP KEEPS RUNNIG FOREVER
      *----------------------------------------------------------
      */
-    while(1)
+    int keep_running = 1;
+    while(keep_running)
     {
         socklen_t client_addr_len = sizeof(client_addr);
     
@@ -157,6 +158,31 @@ int main(void)
             {
                 snprintf(file_path,sizeof(file_path),"public/about.html");
             }
+            else if(strcmp(path,"/shutdown") == 0)
+            {
+                /*
+                 * Graceful shutdown cmd detected.
+                 */
+                printf("[SHUTDOWN]Graceful shutdown request received from browser.\n");
+
+                const char *shutdown_body = "<html><body><h1>server shutting down</h1><p>The C backend loop has exited gracefully.You can terminate now.</p></body></html>";
+                int body_length = strlen(shutdown_body);
+                
+                char response[1024];
+                snprintf(response,sizeof(response),
+                        "HTTP/1.1 200 OK \r\n"
+                        "Content-Type: text/html\r\n"
+                        "Content-Length: %d\r\n"
+                        "\r\n"
+                        "%s",
+                        body_length,shutdown_body);
+
+                /*sending the confirmation page back before breaking lines.*/
+                send(client_fd,response,strlen(response),0);
+                /*breaking the while condition*/
+                keep_running = 0;
+                close(client_fd);
+            }   
             else
             {
                 /*safely chaining relative paths to the public directory*/
