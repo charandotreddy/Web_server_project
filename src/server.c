@@ -1,8 +1,8 @@
 #include <stdio.h>//for printf() & perror()
-#include <stdlib.h>//for exit90 & memory constants
-#include <string.h>//for memset90
+#include <stdlib.h>//for exit() & memory constants
+#include <string.h>//for memset()
 #include <unistd.h>//for close() system call
-#include <arpa/inet.h>//for socteradd_in & socket API's
+#include <arpa/inet.h>//for socteraddr_in & socket API's
 #include <sys/socket.h>
 
 #define PORT 8080
@@ -51,7 +51,7 @@ int main(void)
     //tell the OS to attach our socket to this specific port configuration.
     if(bind(server_fd,(struct sockaddr*)&server_addr,sizeof(server_addr)) == -1)
     {
-        printf("bind() failed\n");
+        perror("bind() failed\n");
         close(server_fd);
         exit(EXIT_FAILURE);
     }
@@ -170,7 +170,7 @@ int main(void)
                 
                 char response[1024];
                 snprintf(response,sizeof(response),
-                        "HTTP/1.1 200 OK \r\n"
+                        "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/html\r\n"
                         "Content-Length: %d\r\n"
                         "\r\n"
@@ -210,7 +210,8 @@ int main(void)
                 {
                     perror("memory allocation failure for file reading\n");
                     fclose(file);
-                    close(client_fd);             
+                    close(client_fd);
+                    continue;             
                 }
 
                 /*Read the data sterams from disk into our memeory footprint*/
@@ -221,7 +222,7 @@ int main(void)
                 /*construct HTTP standard response header*/
                 char response_header[512];
                 snprintf(response_header,sizeof(response_header),
-                        "HTTP/1.1 200 OK \r\n"
+                        "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/html\r\n"
                         "Content-Length: %ld\r\n"
                         "\r\n",
@@ -244,13 +245,13 @@ int main(void)
                 */
                 printf("[404 Error] Requested file path not found:%s\n",file_path);
                 
-                const char *not_found_body = "<html><body><h1>404 NOT FOUND</h1><p>The requested page does not exist in the server</p></body></html>";
+                const char *not_found_body = "<html><body><h1>404 not found</h1><p>The requested page does not exist in the server</p></body></html>";
 
                 int body_length = strlen(not_found_body);
 
                 char response[1024];
                 snprintf(response,sizeof(response),
-                        "HTTP/1.1 404 NOT FOUND\r\n"
+                        "HTTP/1.1 404 not found\r\n"
                         "Content-Type: text/html\r\n"
                         "Content-Length: %d\r\n"
                         "\r\n"
@@ -261,6 +262,7 @@ int main(void)
         }
         /*closing the client communication */
         close(client_fd);
+
         printf("[OK] connection processed cleanly.Waiting for the next connection.......\n");
         printf("------------------------------------------------\n");
     }
